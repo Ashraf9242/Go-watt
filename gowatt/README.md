@@ -1,9 +1,10 @@
 # Go Watt — 3D scroll experience
 
 A bilingual (Arabic RTL default / English LTR) pre-launch marketing site for Go Watt,
-built as one continuous scroll journey: a generic electric car drives along a winding
-road from the hero down to a "battery full" finale, with HTML overlay cards narrating
-each beat.
+built as one continuous scroll journey: a real Tesla Model 3 model drives along a
+winding road from the hero down to a "battery full" finale, with HTML overlay cards
+narrating each beat. **The car's licensing status is unconfirmed — read "The car model"
+below before you assume this is safe to ship anywhere real.**
 
 ```bash
 npm install
@@ -50,7 +51,7 @@ src/
     useScrollJourney.ts   ← ScrollTrigger → progress, plus per-card reveals
   three/
     road.ts               ← control points, CatmullRomCurve3, road ribbon, lamp layout
-    Car.tsx               ← the generic EV, modelled in code
+    Car.tsx               ← loads the Tesla model (public/models/), LOD, wheel-roll, charge glow
     Environment.tsx       ← road, lamps, charger, service props, coverage plate, particles
     Rig.tsx               ← car rig + camera rig (reads progress every frame)
     Scene.tsx             ← canvas, day/night lighting, fog, render-loop governor
@@ -127,35 +128,102 @@ error logged anywhere — a bug worth having a test for.
 
 ---
 
-## The car
+## The car model
 
-**The car is built procedurally in `Car.tsx`, not loaded from a file.** This is a
-deliberate decision on three grounds:
+**This section changed.** `Car.tsx` used to build an original, license-safe generic
+crossover procedurally — zero download weight, zero licensing question, matching the
+project brief's explicit instruction. It was replaced with the real Tesla Model 3 model
+at the project owner's direction, after being told directly that it's a trademarked
+design with no license documentation anywhere in this repository, and choosing to
+proceed anyway. If you're reading this before that conversation happened for you too:
+**stop and get the actual commercial license in writing before this goes anywhere
+real.** Nothing about the file compiling or the site building cleanly means that check
+happened.
 
-- **Licensing.** The two `.glb` files that came with the project brief are a Tesla
-  Model 3 and a BYD Dolphin. Both are trademarked production vehicle designs, and
-  using either in commercial marketing carries a double exposure: the vehicle design
-  itself, plus the licence on the model file. The brief forbids branded vehicles.
-- **Weight.** Those two files are 22 MB and 34 MB. The entire scene budget is ~4 MB.
-- **Cost.** Geometry in code downloads as zero bytes, needs no Draco/KTX2 pipeline,
-  and has no texture requests.
+The original procedural car is gone from `Car.tsx` but still in git history
+(`git log -- src/three/Car.tsx`) if this ever needs to be reverted — that revert is a
+single-file change, nothing else in the scene depends on which car is loaded.
 
-The silhouette is an original crossover: high beltline, narrower raked greenhouse,
-brand-green side accent. Its charge port is amber while charging and green when
-complete — and that state is *always* mirrored by a text label plus an icon in the
-overlay, never colour alone.
+### Where it came from, and what shipping it actually took
 
-### Swapping in a `.glb` later
+Source: `tesla_2018_model_3.glb` in the project root, a Sketchfab export
+(`generator: Sketchfab-12.68.0` in the file's own metadata) with no accompanying
+license file. Raw size: 22.7 MB, ~394K vertices, 176 mesh primitives, 17 embedded PNG
+textures. Compressed via `gltf-transform` into two files under `public/models/`:
 
-If a licensed model is ever commissioned:
+| File | Size | Used for |
+| --- | --- | --- |
+| `tesla-model-3.glb` | ~2.4 MB | `tier: 'full'`, near-camera LOD |
+| `tesla-model-3-lite.glb` | ~1.2 MB | `tier: 'lite'`; far-camera LOD for `tier: 'full'` |
 
-1. Compress it first — `gltf-transform optimize in.glb out.glb --texture-compress ktx2`
-   — and confirm it lands at 1–2 MB.
-2. Put it in `public/models/`, load it with `useGLTF` inside `Car.tsx`, and keep the
-   existing `<group ref={spinRef}>` wrapper plus the `gw-wheel`-named wheel groups so
-   the finale spin and wheel roll keep working.
-3. **Document the commercial licence in writing before shipping.** Do not assume a
-   downloadable model is cleared for commercial use.
+Pipeline (run from `gowatt/`, against the root-level source file):
+
+```bash
+npx gltf-transform optimize ../tesla_2018_model_3.glb public/models/tesla-model-3.glb \
+  --compress meshopt --flatten false --join false --instance false \
+  --simplify true --simplify-ratio 0.35 --simplify-error 0.0015 \
+  --texture-compress false --palette true --prune true --weld true
+```
+
+`--flatten false --join false` is not optional — the default `optimize` preset merges
+and renames nodes for fewer draw calls, which would destroy the `wheels` / `wheels.001`
+node names the wheel-roll animation depends on (see below). Texture compression runs as
+a **separate** pass, because `gltf-transform`'s bundled `--texture-compress` step
+crashes on every texture in this specific file (`colourspace: parameter space not set`,
+from every angle it looks like a bug in how `@gltf-transform/functions` hands a texture
+buffer to `sharp` for this asset, not anything wrong with the textures themselves —
+copying the bytes first, `Buffer.from(texture.getImage())`, avoids it completely). The
+lite variant repeats this with `--simplify-ratio 0.12` and a smaller texture cap.
+
+This is well above the brief's original 1–2 MB target for a *procedural, low-poly*
+car — appropriate for that kind of asset, not for a full-detail licensed one. 2.4 MB is
+the honest number for what this actually is.
+
+### The bug that ate most of this work: axis correction that shouldn't have existed
+
+The file's node graph *looks* like it needs an axis fix — the model's raw local
+coordinates read as Z-up/Y-forward, the opposite of this scene's Y-up/Z-forward. A
+hand-derived correction for that (verified numerically against the model's own
+front/rear hub coordinates) produced a car standing on its bumper, twisted into an
+unrecognisable heap. The actual cause: the file's root node (`"Tesla Model 3"`) already
+carries its own axis correction — a −90°-about-X rotation plus a ×100 unit-scale
+factor, both standard Blender/Sketchfab export artifacts — and glTF loaders always
+apply node transforms. The hand-derived fix was stacking a second, unwanted rotation on
+top of one the file already had. It only showed up because the *node translations* I'd
+inspected earlier (to derive that fix) don't reflect ancestor scale/rotation — the
+model's real, rendered bounding box does, and that's what exposed the double-rotation.
+The eventual fix in `Car.tsx` (`TeslaVariant`) is almost embarrassingly simple: no axis
+correction at all, just a plain Y-yaw, plus scale and ground/centre position computed
+from the model's actual bounding box at mount time rather than hand-typed constants —
+robust against the exact numbers shifting if this pipeline is ever re-run.
+
+**If you ever touch `AXIS_FIX` in `Car.tsx`: rebuild, screenshot, and look at it.**
+Numbers that check out on paper are not the same as a car that looks like a car.
+
+### How the rig survives not knowing what's inside the file
+
+- **Wheel roll.** `wheels` and `wheels.001` are the two node names actually confirmed
+  (by loading the real scene graph, not guessing) to contain wheel-only geometry.
+  `Car.tsx` collects every node matching `/^wheels(\.\d+)?$/i` and rotates them on
+  their local X axis, scaled by distance travelled — same mechanism the procedural car
+  used, just matching real node names instead of a hand-authored `gw-wheel` tag.
+- **Charge-port glow.** Rather than hunting through ~40 real materials for whichever
+  one might be a charging port, there is none dedicated to it — a small separate glow
+  decal is parented onto the model and positioned from its bounding box. This is the
+  same "never rely on knowing what's inside someone else's asset" logic as the wheels.
+- **Finale spin, LOD, day/night lighting.** All operate on the outer wrapper group or
+  the scene's own lights — they never needed to know what's inside the model at all.
+
+### If you re-run this pipeline
+
+Re-verify by loading the output and checking the actual node names survived:
+
+```js
+// see scripts/verify-path.ts for the pattern; wheel nodes must still exist post-export
+root.listNodes().filter(n => /^wheels(\.\d+)?$/i.test(n.getName()))
+```
+
+And re-screenshot. The axis bug above passed every "does it compile" check there is.
 
 ---
 
@@ -201,13 +269,46 @@ Other measures: `frameloop="demand"` with a governor that draws nothing while th
 is hidden or once the visitor is past the finale (a render loop running under the
 footer is pure battery burn); per-frame reads that never touch React state;
 `<Detailed>` LOD on the car; instanced lamp posts; and all textures generated
-client-side.
+client-side (road, ground, lamp glow) apart from the car model's own baked textures.
 
 ### Bundle reality check
 
-From the current build (gzipped): main app ~109 kB, three.js scene chunk ~227 kB,
-CSS ~5 kB, and **no 3D asset downloads at all**. The hero heading is the LCP element
-and paints before the scene chunk is requested.
+From the current build (gzipped): main app ~111 kB, three.js scene chunk ~249 kB,
+CSS ~5 kB — all requested before any 3D asset. The hero heading is the LCP element and
+paints before any of that, let alone the car, is fetched.
+
+The car model itself is **not** part of that bundle and is the honest asterisk on the
+"~4 MB scene budget" from the original brief: `full` tier requests both
+`tesla-model-3.glb` (~2.4 MB) and `tesla-model-3-lite.glb` (~1.2 MB, the far-LOD swap),
+`lite` tier requests only the 1.2 MB file. That ~3.6 MB (full tier) is real weight this
+build carries that the original all-procedural plan did not — the tradeoff made
+explicitly, in exchange for a real car instead of a generic one. `useGLTF.preload()`
+kicks off both fetches as soon as the Scene module itself is requested, in parallel
+with everything else, rather than waiting for the car to scroll into view.
+
+---
+
+## Navigation
+
+`Chrome.tsx`'s `Header` does four things beyond a static bar of links:
+
+- **Scroll elevation.** Flat/translucent over the hero, opaque with a hairline
+  border + shadow once `window.scrollY > 8` — the standard "modern nav" cue that a
+  fixed header is now sitting over real content, not empty space.
+- **Scrollspy on "Services."** Of the three nav links, only Services is an in-page
+  anchor (About/FAQ are separate canvas-free pages, so there's nothing honest to
+  "spy" on there) — its underline activates once `scene >= ` the Services scene's
+  index, reading the same `scene` value the store already tracks for the progress
+  bar. No separate IntersectionObserver needed.
+- **A mobile drawer that didn't exist before.** The desktop nav links were simply
+  `hidden md:flex` with no fallback — mobile visitors had no way to reach
+  Services/About/FAQ except the sticky register CTA. The hamburger button now opens a
+  focus-trapped drawer (Escape, overlay-click, and Tab-wrap all handled, the same
+  pattern as `RegisterDialog`) with the same links plus the mode/lang toggles and the
+  register CTA.
+- **An underline that doesn't care about text direction.** `transform: scaleX()` from
+  `origin-center` rather than a fixed-edge `::after`, so it looks identical under
+  RTL and LTR without a mirrored variant.
 
 ---
 
@@ -250,23 +351,37 @@ client-side 20-second throttle is a courtesy, not a security control.
 
 These are real and deliberately not papered over:
 
-1. **`gowatt-logo-white.svg` does not exist.** Night mode uses
+1. **The Tesla Model 3 model has no commercial license on file.** This is the single
+   biggest open item in the repository — see "The car model" above. Everything else in
+   this list is a polish gap; this one is a legal exposure that a design review cannot
+   resolve, only a license (or a reversion to the generic car still sitting in git
+   history) can.
+2. **`gowatt-logo-white.svg` does not exist.** Night mode uses
    `gowatt-logo-orange.png`, the only dark-safe logo in `brand/logo/`. A full
    white/green two-colour mark would be better. Not a launch blocker.
-2. **Google Play badge.** `brand/icon/` has Apple marks but no Play equivalent, so
+3. **Google Play badge.** `brand/icon/` has Apple marks but no Play equivalent, so
    the Play button is text-only. Both buttons are non-interactive on purpose — the
    app is not published, and they must not look like working store links.
-3. **Membership screenshots are placeholders**, awaiting real app captures. They are
+4. **Membership screenshots are placeholders**, awaiting real app captures. They are
    not mock screenshots, because a fabricated screenshot of an unlaunched app would
    be a false claim.
-4. **English text pages.** `/en/` is a real, indexable English page, but About / FAQ
+5. **English text pages.** `/en/` is a real, indexable English page, but About / FAQ
    / Privacy / Terms exist in Arabic only; their `hreflang` points at `/en/`. English
    counterparts are a straightforward addition (copy the four files under `en/` and
    add them to `rollupOptions.input`).
-5. **`EVO Chargers.kml`** in the project root is a live feed of *someone else's*
+6. **`EVO Chargers.kml`** in the project root is a live feed of *someone else's*
    charger network. It is deliberately unused. The coverage beat is a stylised plate
    with illustrative dots, and the copy says so.
-6. **Privacy and Terms are operational drafts**, accurate about what the site does
+7. **The charging cable's reach is hand-tuned, not measured.** `ChargerPost` in
+   `Environment.tsx` was built against the procedural car's exact width; the cable
+   length was nudged back to roughly reach the Tesla model's wider body, but nothing
+   computes the actual gap between the post and the car's real (bounding-box-derived)
+   surface. Close enough to read correctly at a glance, not pixel-exact.
+8. **Coverage-scene "first phase vs. under study" governorate split (5 vs. 6) is a
+   reasonable illustrative guess** (larger, better-connected governorates first), not
+   a decided rollout plan — the copy is careful to say "planned"/"illustrative"
+   throughout, but if a real rollout order exists, use it instead.
+9. **Privacy and Terms are operational drafts**, accurate about what the site does
    today, but they need review by a qualified lawyer before launch — along with
    company registration and e-wallet licensing, which no amount of front-end work
    addresses.

@@ -162,13 +162,16 @@ export function Fallback2D({ reason }: { reason: FallbackReason }) {
 
       <Beat n={9} eyebrow={s.coverage.eyebrow} title={s.coverage.title} body={s.coverage.body}>
         <ul className="mt-4 flex flex-wrap gap-2">
-          {s.coverage.cities.map((city, i) => (
-            <li key={city} className="gw-chip">
-              <span aria-hidden="true">{i < 3 ? '●' : '○'}</span>
-              {city}
+          {s.coverage.regions.map((region) => (
+            <li key={region.name} className="gw-chip">
+              <span aria-hidden="true">{region.planned ? '●' : '○'}</span>
+              {region.name}
             </li>
           ))}
         </ul>
+        <p className="mt-3 text-[0.72rem] text-ink-3">
+          ● {s.coverage.legendPlanned} — ○ {s.coverage.legendStudy}
+        </p>
       </Beat>
 
       <section className="py-10 border-t" style={{ borderColor: 'var(--border)' }}>
@@ -178,8 +181,21 @@ export function Fallback2D({ reason }: { reason: FallbackReason }) {
         <div className="grid gap-4 sm:grid-cols-3">
           {s.points.tiers.map((tier) => (
             <div key={tier.name} className="gw-card">
-              <h3 className="font-bold mb-1">{tier.name}</h3>
-              <p className="text-ink-2 text-[0.92rem]">{tier.body}</p>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h3 className="font-bold">{tier.name}</h3>
+                <span className="gw-chip !py-0.5 !px-2 text-[0.66rem]">{tier.threshold}</span>
+              </div>
+              <p className="text-ink-2 text-[0.92rem] mb-3">{tier.body}</p>
+              <ul className="space-y-1 text-[0.8rem]">
+                {tier.features.map((f) => (
+                  <li key={f} className="flex items-center gap-1.5" style={{ color: 'var(--text-2)' }}>
+                    <span aria-hidden="true" style={{ color: 'var(--brand-green)' }}>
+                      ✓
+                    </span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
         </div>

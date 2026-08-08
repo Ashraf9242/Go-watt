@@ -259,8 +259,10 @@ export function ChargerPost() {
         both directions from its middle.
       */}
       <group ref={cable} position={[0, 0.95, 0]} rotation={[0, (-sign * Math.PI) / 2, 0]}>
-        <mesh position={[0, 0, 2.5]}>
-          <boxGeometry args={[0.07, 0.07, 5]} />
+        {/* Reach tuned for the real Tesla model's width, not the narrower
+            procedural car this was originally built for. */}
+        <mesh position={[0, 0, 2.9]}>
+          <boxGeometry args={[0.07, 0.07, 5.8]} />
           <meshStandardMaterial color="#15181a" roughness={0.6} />
         </mesh>
       </group>
@@ -479,18 +481,29 @@ export function CoveragePlate() {
   const mode = useJourney((s) => s.mode)
   const glow = useMemo(() => makeGlowTexture(), [])
 
-  // Stylised placements, laid out relative to the plate rather than to real
-  // coordinates: Muscat NE, Sohar N, Nizwa centre, Sur E, Salalah SW.
+  // Stylised placements for all 11 governorates, laid out relative to the
+  // plate rather than to real coordinates — a schematic NW-SE spread evoking
+  // Oman's shape, not a survey. Order matches dict.ts `coverage.regions`, so
+  // the first five (green) are the first-phase governorates and the rest
+  // (amber) are under study.
   const dots = useMemo(
-    () => [
-      [7, -6],
-      [3, -11],
-      [1, -2],
-      [11, 0],
-      [-9, 9],
-    ] as [number, number][],
+    () =>
+      [
+        [8, -4], // Muscat
+        [6, 3], // Al Batinah North
+        [7, -1], // Al Batinah South
+        [-1, -5], // Ad Dakhiliyah
+        [-3, -14], // Dhofar
+        [5, -9], // Ash Sharqiyah North
+        [8, -12], // Ash Sharqiyah South
+        [-7, -1], // Adh Dhahirah
+        [-4, -10], // Al Wusta
+        [2, 10], // Musandam
+        [-7, 4], // Al Buraimi
+      ] as [number, number][],
     [],
   )
+  const FIRST_PHASE_COUNT = 5
 
   useFrame(({ clock }) => {
     const local = localProgress('coverage', motion.progress)
@@ -518,14 +531,14 @@ export function CoveragePlate() {
       {dots.map(([x, y], i) => (
         <mesh key={`dot-${i}`} position={[x, y, 0.02]}>
           <circleGeometry args={[0.7, 16]} />
-          <meshBasicMaterial color={i < 3 ? GREEN : AMBER} />
+          <meshBasicMaterial color={i < FIRST_PHASE_COUNT ? GREEN : AMBER} />
         </mesh>
       ))}
       {dots.map(([x, y], i) => (
         <sprite key={`pulse-${i}`} position={[x, y, 0.05]} scale={[5, 5, 1]}>
           <spriteMaterial
             map={glow}
-            color={i < 3 ? GREEN : AMBER}
+            color={i < FIRST_PHASE_COUNT ? GREEN : AMBER}
             transparent
             opacity={0}
             depthWrite={false}

@@ -201,6 +201,15 @@ function Charging() {
                 <dd className="font-semibold">{s.powerValue}</dd>
               </div>
               <div className="flex justify-between gap-4">
+                <dt className="text-ink-3">{s.energy}</dt>
+                {/* Tied to scroll, like the percentage above — never a static
+                    "fact" about a real session, just the same illustrative
+                    number scaled to a typical ~42 kWh battery. */}
+                <dd className="font-semibold tabular-nums">
+                  {Math.round((charge / 100) * 42)} kWh
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
                 <dt className="text-ink-3">{s.eta}</dt>
                 <dd className="font-semibold tabular-nums">
                   {Math.max(0, Math.round((100 - charge) * 0.32))} min
@@ -288,13 +297,15 @@ function Coverage() {
     <SceneTrack id="coverage" vh={SCENE_BY_ID.coverage.vh} labelledBy="coverage-title">
       <div className="flex justify-start">
         <Card eyebrow={s.eyebrow} title={s.title} body={s.body} titleId="coverage-title">
+          {/* All 11 Omani governorates — the real, complete list, not just the
+              handful of cities a marketing map usually shows. */}
           <ul className="mt-4 flex flex-wrap gap-2">
-            {s.cities.map((city, i) => (
+            {s.regions.map((region) => (
               <li
-                key={city}
+                key={region.name}
                 className="gw-chip"
                 style={
-                  i < 3
+                  region.planned
                     ? {
                         background: 'color-mix(in srgb, var(--brand-green) 14%, transparent)',
                         color: 'var(--brand-green-strong)',
@@ -302,8 +313,8 @@ function Coverage() {
                     : undefined
                 }
               >
-                <span aria-hidden="true">{i < 3 ? '●' : '○'}</span>
-                {city}
+                <span aria-hidden="true">{region.planned ? '●' : '○'}</span>
+                {region.name}
               </li>
             ))}
           </ul>
@@ -334,16 +345,34 @@ function Points() {
         <div className="grid gap-3 sm:grid-cols-3 max-w-2xl">
           {s.tiers.map((tier, i) => (
             <div key={tier.name} data-reveal className="gw-card">
-              <h3 className="text-lg font-bold mb-1">{tier.name}</h3>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h3 className="text-lg font-bold">{tier.name}</h3>
+                <span
+                  className="gw-chip !py-0.5 !px-2 text-[0.66rem]"
+                  style={i === 2 ? { color: 'var(--amber-text-safe)' } : undefined}
+                >
+                  {tier.threshold}
+                </span>
+              </div>
               <p className="text-ink-2 text-[0.92rem] mb-3">{tier.body}</p>
+              <ul className="space-y-1 mb-3 text-[0.78rem]">
+                {tier.features.map((f) => (
+                  <li key={f} className="flex items-center gap-1.5" style={{ color: 'var(--text-2)' }}>
+                    <span aria-hidden="true" style={{ color: 'var(--brand-green)' }}>
+                      ✓
+                    </span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
               {/* Screenshot placeholder — real app captures drop in here once
                   the app UI is final. Never a fabricated screenshot. */}
               <div
-                className="rounded-xl grid place-items-center text-[0.68rem] text-center px-2 py-4"
+                className="rounded-xl grid place-items-center text-[0.68rem] text-center px-2 py-3"
                 style={{
                   border: '1px dashed var(--border)',
                   color: 'var(--text-3)',
-                  aspectRatio: '4 / 3',
+                  aspectRatio: '16 / 9',
                   background: i === 2 ? 'color-mix(in srgb, var(--brand-amber) 8%, transparent)' : undefined,
                 }}
               >

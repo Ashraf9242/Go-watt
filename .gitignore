@@ -27,12 +27,18 @@ yarn-error.log*
 .tmp-*
 
 # ---------------------------------------------------------------------------
-# Reference 3D models — deliberately excluded (55 MB combined).
+# Raw source 3D models — deliberately excluded (55 MB combined).
 #
-# These are trademarked production vehicles (Tesla Model 3, BYD Dolphin) and
-# are NOT used by the site: the car in gowatt/src/three/Car.tsx is an original
-# generic crossover built in code. Committing them would put 55 MB of unused
-# binaries into git history permanently, where they cannot easily be removed.
+# Both are trademarked production vehicles with no license documentation in
+# this repository. gowatt/src/three/Car.tsx now loads the Tesla Model 3 (at
+# the project owner's explicit direction, after being told the trademark/
+# licensing risk in plain terms — see gowatt/README.md, "The car model," for
+# the full record) — but it loads the COMPRESSED derivative committed under
+# gowatt/public/models/, not this raw 22 MB source file. The BYD Dolphin is
+# still entirely unused. Excluding these two raw files just keeps 55 MB of
+# redundant/unused binaries out of git history, where they can't easily be
+# removed later — it is not a statement that the compressed derivative is
+# any safer to ship than the source it came from.
 #
 # To include them anyway, delete the two lines below and commit. Consider
 # `git lfs track "*.glb"` first.

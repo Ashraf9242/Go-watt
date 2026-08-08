@@ -1,148 +1,154 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox, Detailed } from '@react-three/drei'
+import { Detailed, useGLTF } from '@react-three/drei'
 import { motion, useJourney } from '../store/journey'
 import { localProgress } from '../journey/scenes'
 import { travelProgress } from './road'
 
 /**
- * GENERIC EV CROSSOVER — modelled procedurally in code.
+ * TESLA MODEL 3 — real, licensed-status-unconfirmed asset, used at the
+ * project owner's explicit direction after being told the risk in plain
+ * terms and choosing to proceed anyway (see README "The car model" for the
+ * full record). This file previously held an original, license-safe
+ * procedural crossover with zero download weight; that code is gone from
+ * HEAD but still in git history if this ever needs to be reverted.
  *
- * Deliberately NOT a real vehicle. The two .glb files shipped with the brief
- * are a Tesla Model 3 and a BYD Dolphin: both are trademarked designs and
- * both are 22MB/34MB, which is 5–8× the entire scene budget on their own.
- * This silhouette is an original crossover form — a tapered greenhouse over
- * a high beltline — carrying brand-green accents to tie it to Go Watt.
- *
- * Because it is geometry rather than an asset, it downloads as zero bytes,
- * needs no Draco/KTX2 step, and carries no licensing question at all.
- * Swapping in a licensed .glb later is documented in the README.
+ * Source: `tesla_2018_model_3.glb` (project root), a Sketchfab export with no
+ * accompanying license documentation in this repository. Compressed here via
+ * gltf-transform (meshopt geometry + WebP textures, node names preserved) —
+ * see `gowatt/README.md` for the exact pipeline and the honest size numbers.
+ * Never assume this clears the asset for commercial use; that check still
+ * has to happen before this ships anywhere real.
  */
 
-const BODY_COLOR = '#f4f6f5'
-const BODY_COLOR_NIGHT = '#dfe6e1'
-const GLASS = '#131a17'
-const TRIM = '#1b201d'
-const ACCENT = '#28844c' // brand green
+const HERO_URL = '/models/tesla-model-3.glb'
+const LITE_URL = '/models/tesla-model-3-lite.glb'
+
+useGLTF.preload(HERO_URL, false, true)
+useGLTF.preload(LITE_URL, false, true)
+
 const AMBER = '#fbb03b'
 const COMPLETE = '#3fae6a'
 
-type Detail = 'high' | 'low'
+/**
+ * The source file already bakes its own axis correction into the root
+ * "Tesla Model 3" node (a -90°-about-X rotation plus a ×100 unit scale, both
+ * standard artifacts of a Sketchfab/Blender export) — glTF loaders always
+ * apply node transforms, so that correction lands automatically and needs no
+ * help here. An early version of this file also applied its own hand-derived
+ * axis-fix on top, which double-rotated the model into an unrecognisable
+ * heap; measuring the model's real bounding box (not raw node translations,
+ * which ignore ancestor scale/rotation) is what exposed that. Any remaining
+ * yaw to make "front" line up with this rig's +Z convention is a plain
+ * Y rotation, verified empirically below — never touch X/Z here again
+ * without re-checking against a screenshot.
+ */
+const AXIS_FIX: [number, number, number] = [0, Math.PI, 0]
+
+/** Matches the wheel-only node names confirmed by inspecting the glb's scene
+ * graph directly ("wheels", "wheels.001", ...) — not a guess. */
+const WHEEL_NAME = /^wheels(\.\d+)?$/i
+
+type Detail = 'hero' | 'lite'
 
 /**
- * The axle runs along local X, so rolling the wheel is a rotation on the
- * outer group's X axis — which is what the frame loop drives below.
+ * One loaded, grounded, correctly-scaled copy of the model.
+ *
+ * Scale and ground offset are computed from the model's own bounding box at
+ * mount time rather than hand-typed constants — robust against the exact
+ * numbers shifting if the compression pipeline is ever re-run with different
+ * settings.
  */
-function Wheel({ detail, position }: { detail: Detail; position: [number, number, number] }) {
-  const segments = detail === 'high' ? 22 : 10
-  return (
-    <group name="gw-wheel" position={position}>
-      <group rotation={[0, 0, Math.PI / 2]}>
-        <mesh castShadow>
-          <cylinderGeometry args={[0.42, 0.42, 0.28, segments]} />
-          <meshStandardMaterial color="#15181a" roughness={0.85} />
-        </mesh>
-        {detail === 'high' && (
-          <mesh position={[0, 0.145, 0]}>
-            <cylinderGeometry args={[0.24, 0.24, 0.03, segments]} />
-            <meshStandardMaterial color="#8d9499" metalness={0.85} roughness={0.3} />
-          </mesh>
-        )}
-      </group>
-    </group>
-  )
-}
-
-function CarMesh({
+function TeslaVariant({
   detail,
-  bodyColor,
   portRef,
-  headlightIntensity,
+  onWheels,
 }: {
   detail: Detail
-  bodyColor: string
   portRef: React.MutableRefObject<THREE.MeshStandardMaterial | null>
-  headlightIntensity: number
+  onWheels: (nodes: THREE.Object3D[]) => void
 }) {
-  const smooth = detail === 'high' ? 4 : 1
+  const url = detail === 'hero' ? HERO_URL : LITE_URL
+  const gltf = useGLTF(url, false, true)
+  const wrapper = useRef<THREE.Group>(null)
+  const inner = useRef<THREE.Group>(null)
+
+  // Cloned once per variant instance: mutating a shared cached GLTF scene
+  // graph directly would bleed across every consumer of that cache (and
+  // across hot reloads). three.js's clone(true) duplicates the node graph
+  // while still sharing geometries/materials, which is exactly what's needed
+  // here — nothing below mutates a shared material, only adds a sibling.
+  const scene = useMemo(() => gltf.scene.clone(true), [gltf.scene])
+
+  useEffect(() => {
+    const wrap = wrapper.current
+    const box = new THREE.Box3().setFromObject(scene)
+    const size = box.getSize(new THREE.Vector3())
+
+    // Sized to match this scene's road/lamp/camera scale — not the real
+    // car's literal dimensions. Targets roughly the same footprint the
+    // original procedural crossover used (~2m wide, ~4.3m long).
+    const targetLength = 4.3
+    const scale = size.z > 0.01 ? targetLength / size.z : 1
+
+    if (inner.current) inner.current.scale.setScalar(scale)
+    if (wrap) {
+      // The asset's own root node isn't centred on its local origin (the
+      // Sketchfab rig it ships with was framed for a viewer, not a driving
+      // rig), so grounding on Y alone left the car sitting off to one side of
+      // the lane. Re-centre X and Z here too, using the same real bounding
+      // box, so the wrapper's origin is the car's true centre before the
+      // outer CarRig ever positions it on the road.
+      wrap.updateMatrixWorld(true)
+      const groundedBox = new THREE.Box3().setFromObject(wrap)
+      wrap.position.y -= groundedBox.min.y
+      wrap.position.x -= (groundedBox.min.x + groundedBox.max.x) / 2
+      wrap.position.z -= (groundedBox.min.z + groundedBox.max.z) / 2
+    }
+
+    const wheels: THREE.Object3D[] = []
+    scene.traverse((o) => {
+      if (WHEEL_NAME.test(o.name)) wheels.push(o)
+    })
+    onWheels(wheels)
+
+    // A small, fully self-controlled glow near the rear-left quarter panel —
+    // deliberately a separate decal rather than hunting for and retinting one
+    // of the model's own ~40 materials. That keeps the "charging" indicator
+    // robust to exactly which real Tesla mesh happens to be loaded, the same
+    // way the finale spin and charge-port state don't care what's inside.
+    if (portRef && wrap) {
+      wrap.updateMatrixWorld(true)
+      const b = new THREE.Box3().setFromObject(wrap)
+      const port = wrap.userData.portMesh as THREE.Mesh | undefined
+      if (port) {
+        port.position.set(
+          b.min.x + (b.max.x - b.min.x) * 0.06,
+          b.min.y + (b.max.y - b.min.y) * 0.42,
+          b.min.z + (b.max.z - b.min.z) * 0.32,
+        )
+      }
+    }
+    // Runs once per loaded variant; the model's own geometry never changes
+    // after mount, only the ref-driven materials/rotations below do.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene])
 
   return (
-    <group>
-      {/* Lower body */}
-      <RoundedBox args={[2.0, 0.62, 4.3]} radius={0.22} smoothness={smooth} position={[0, 0.62, 0]} castShadow>
-        <meshStandardMaterial color={bodyColor} metalness={0.35} roughness={0.32} />
-      </RoundedBox>
-
-      {/* Shoulder / beltline volume */}
-      <RoundedBox args={[1.94, 0.42, 3.9]} radius={0.18} smoothness={smooth} position={[0, 1.02, -0.05]}>
-        <meshStandardMaterial color={bodyColor} metalness={0.35} roughness={0.3} />
-      </RoundedBox>
-
-      {/* Greenhouse — narrower than the body and set back, so the profile reads
-          as a crossover rather than a van. */}
-      <RoundedBox args={[1.52, 0.5, 1.95]} radius={0.16} smoothness={smooth} position={[0, 1.4, -0.3]}>
-        <meshStandardMaterial color={GLASS} metalness={0.6} roughness={0.15} />
-      </RoundedBox>
-      {/* Raked windscreen and rear glass: the tilt is what breaks up the
-          otherwise symmetrical box. */}
-      <mesh position={[0, 1.32, 0.78]} rotation={[-0.62, 0, 0]}>
-        <boxGeometry args={[1.5, 0.9, 0.07]} />
-        <meshStandardMaterial color={GLASS} metalness={0.65} roughness={0.12} />
-      </mesh>
-      <mesh position={[0, 1.34, -1.31]} rotation={[0.48, 0, 0]}>
-        <boxGeometry args={[1.46, 0.78, 0.07]} />
-        <meshStandardMaterial color={GLASS} metalness={0.65} roughness={0.12} />
-      </mesh>
-      {/* Roof panel */}
-      <RoundedBox args={[1.42, 0.14, 1.7]} radius={0.07} smoothness={smooth} position={[0, 1.66, -0.34]}>
-        <meshStandardMaterial color={TRIM} roughness={0.6} />
-      </RoundedBox>
-      {/* Bonnet, so front and rear are not interchangeable */}
-      <RoundedBox args={[1.86, 0.24, 1.15]} radius={0.11} smoothness={smooth} position={[0, 1.06, 1.5]}>
-        <meshStandardMaterial color={bodyColor} metalness={0.35} roughness={0.3} />
-      </RoundedBox>
-      {/* Rear spoiler lip */}
-      <mesh position={[0, 1.6, -1.62]}>
-        <boxGeometry args={[1.44, 0.08, 0.3]} />
-        <meshStandardMaterial color={TRIM} roughness={0.7} />
-      </mesh>
-
-      {/* Brand-green side accent — the only branding on the vehicle */}
-      <mesh position={[1.005, 0.72, -0.1]}>
-        <boxGeometry args={[0.02, 0.07, 3.1]} />
-        <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={0.35} />
-      </mesh>
-      <mesh position={[-1.005, 0.72, -0.1]}>
-        <boxGeometry args={[0.02, 0.07, 3.1]} />
-        <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={0.35} />
-      </mesh>
-
-      {/* Full-width light bars, front and rear */}
-      <mesh position={[0, 0.86, 2.14]}>
-        <boxGeometry args={[1.72, 0.1, 0.06]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive="#fff3d6"
-          emissiveIntensity={0.9 + headlightIntensity * 2.2}
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh position={[0, 0.9, -2.14]}>
-        <boxGeometry args={[1.7, 0.09, 0.06]} />
-        <meshStandardMaterial
-          color="#c8342a"
-          emissive="#ff4436"
-          emissiveIntensity={0.5 + headlightIntensity * 1.2}
-          toneMapped={false}
-        />
-      </mesh>
-
-      {/* Charge port — amber while charging, green when complete.
-          Its state is always mirrored by a text label in the HTML overlay,
-          so charge state is never communicated by colour alone. */}
-      <mesh position={[-1.01, 0.95, -1.35]} rotation={[0, 0, 0]}>
-        <circleGeometry args={[0.15, detail === 'high' ? 20 : 8]} />
+    <group ref={wrapper}>
+      <group ref={inner} rotation={AXIS_FIX}>
+        <primitive object={scene} />
+      </group>
+      {/* Charge-port indicator decal — position set imperatively above once
+          the model's real bounding box is known. */}
+      <mesh
+        ref={(m) => {
+          if (m && wrapper.current) wrapper.current.userData.portMesh = m
+        }}
+        rotation={[0, Math.PI / 2, 0]}
+      >
+        <circleGeometry args={[0.14, detail === 'hero' ? 20 : 8]} />
         <meshStandardMaterial
           ref={portRef}
           color="#2a2f2c"
@@ -152,34 +158,19 @@ function CarMesh({
           side={THREE.DoubleSide}
         />
       </mesh>
-
-      {/* Bumpers / cladding */}
-      <mesh position={[0, 0.34, 0]}>
-        <boxGeometry args={[2.02, 0.2, 4.05]} />
-        <meshStandardMaterial color={TRIM} roughness={0.85} />
-      </mesh>
-
-      <Wheel detail={detail} position={[0.94, 0.42, 1.42]} />
-      <Wheel detail={detail} position={[-0.94, 0.42, 1.42]} />
-      <Wheel detail={detail} position={[0.94, 0.42, -1.42]} />
-      <Wheel detail={detail} position={[-0.94, 0.42, -1.42]} />
     </group>
   )
 }
 
 export function Car() {
-  const mode = useJourney((s) => s.mode)
   const tier = useJourney((s) => s.tier)
   const reduced = useJourney((s) => s.reducedMotion)
 
   const spinRef = useRef<THREE.Group>(null)
-  const wheels = useRef<THREE.Object3D[]>([])
-  const portHigh = useRef<THREE.MeshStandardMaterial | null>(null)
-  const portLow = useRef<THREE.MeshStandardMaterial | null>(null)
+  const wheelSets = useRef<THREE.Object3D[][]>([])
+  const portHero = useRef<THREE.MeshStandardMaterial | null>(null)
+  const portLite = useRef<THREE.MeshStandardMaterial | null>(null)
   const lastProgress = useRef(0)
-
-  const bodyColor = mode === 'night' ? BODY_COLOR_NIGHT : BODY_COLOR
-  const headlights = mode === 'night' ? 1 : 0
 
   const amber = useMemo(() => new THREE.Color(AMBER), [])
   const green = useMemo(() => new THREE.Color(COMPLETE), [])
@@ -188,21 +179,16 @@ export function Car() {
     const p = motion.progress
 
     // Wheel roll follows distance actually travelled — not clock time and not
-    // raw scroll. So the wheels stop when the visitor stops scrolling, and they
+    // raw scroll — so the wheels stop when the visitor stops scrolling, and
     // also stop while the car is parked at the charger even though scroll
     // progress keeps climbing through the charging beat.
     const travel = travelProgress(p)
     const travelled = Math.abs(travel - lastProgress.current)
     lastProgress.current = travel
-    if (spinRef.current && !reduced) {
-      // Collected once; both LOD levels contribute wheels, and rotating a
-      // hidden LOD level costs nothing.
-      if (wheels.current.length === 0) {
-        spinRef.current.traverse((o) => {
-          if (o.name === 'gw-wheel') wheels.current.push(o)
-        })
+    if (!reduced) {
+      for (const wheels of wheelSets.current) {
+        for (const w of wheels) w.rotation.x -= travelled * 420
       }
-      for (const w of wheels.current) w.rotation.x -= travelled * 420
     }
 
     // Charging glow: amber during the charge beat, green once complete.
@@ -212,7 +198,7 @@ export function Car() {
     const charging = chargeLocal > 0.05 && chargeLocal < 1 && finaleLocal === 0
     const intensity = finaleLocal > 0.15 ? 2.4 : charging ? 1.6 * pulse : chargeLocal >= 1 ? 1.1 : 0
 
-    for (const ref of [portHigh, portLow]) {
+    for (const ref of [portHero, portLite]) {
       const mat = ref.current
       if (!mat) continue
       mat.emissiveIntensity = intensity
@@ -235,31 +221,20 @@ export function Car() {
     }
   })
 
+  const registerWheels = (slot: number) => (nodes: THREE.Object3D[]) => {
+    wheelSets.current[slot] = nodes
+  }
+
   return (
     <group ref={spinRef}>
       {tier === 'lite' ? (
-        <CarMesh
-          detail="low"
-          bodyColor={bodyColor}
-          portRef={portLow}
-          headlightIntensity={headlights}
-        />
+        <TeslaVariant detail="lite" portRef={portLite} onWheels={registerWheels(0)} />
       ) : (
-        // LOD: the detailed body is swapped for the cheap one once the car is
+        // LOD: the full-detail model swaps for the lighter one once the car is
         // small on screen (coverage zoom-out, FAQ background).
-        <Detailed distances={[0, 55]}>
-          <CarMesh
-            detail="high"
-            bodyColor={bodyColor}
-            portRef={portHigh}
-            headlightIntensity={headlights}
-          />
-          <CarMesh
-            detail="low"
-            bodyColor={bodyColor}
-            portRef={portLow}
-            headlightIntensity={headlights}
-          />
+        <Detailed distances={[0, 50]}>
+          <TeslaVariant detail="hero" portRef={portHero} onWheels={registerWheels(0)} />
+          <TeslaVariant detail="lite" portRef={portLite} onWheels={registerWheels(1)} />
         </Detailed>
       )}
     </group>

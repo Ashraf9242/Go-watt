@@ -128,6 +128,38 @@ function FormFields({
         {kind === 'waitlist' ? t.forms.waitlistBody : t.forms.investorBody}
       </p>
 
+      {/* Investor context: what sharing a home charger is planned to involve,
+          before asking anyone to fill in their details. Every figure here is
+          explicitly labelled illustrative/estimated — none of it is a live
+          number, since the programme hasn't opened yet. */}
+      {kind === 'investor' && (
+        <div className="gw-sim space-y-3">
+          <ul className="space-y-1.5 text-sm">
+            {t.forms.investorPerks.map((perk) => (
+              <li key={perk} className="flex items-start gap-2">
+                <span aria-hidden="true" style={{ color: 'var(--brand-green)' }}>
+                  ✓
+                </span>
+                <span>{perk}</span>
+              </li>
+            ))}
+          </ul>
+          <div>
+            <p className="text-[0.72rem] font-semibold text-ink-3 mb-1.5">
+              {t.forms.investorExampleLabel}
+            </p>
+            <dl className="text-sm space-y-1">
+              {t.forms.investorExample.map((row) => (
+                <div key={row.rate} className="flex justify-between gap-4">
+                  <dt className="text-ink-3">{row.rate}</dt>
+                  <dd className="font-semibold tabular-nums">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      )}
+
       {field('name', t.forms.name)}
       {field('email', t.forms.email, 'email')}
       {kind === 'investor' && field('phone', t.forms.phone, 'tel')}
