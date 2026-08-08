@@ -1,0 +1,80 @@
+/* ============================================================
+   GO WATT — design tokens
+   Brand colours are fixed and never substituted:
+     --gw-green #28844C   --gw-amber #FBB03B
+   Day mode is the site default; night mode is user-toggled.
+   ============================================================ */
+
+:root {
+  /* Immutable brand marks */
+  --gw-green: #28844c;
+  --gw-amber: #fbb03b;
+
+  /* ---- Day mode (default) ---- */
+  --bg-top: #ffffff;
+  --bg-mid: #fff6ea;
+  --bg-lower: #f6dfb8;
+
+  --bg: var(--bg-top);
+  --surface: #ffffff;
+  --border: #e7d7bd;
+
+  --text: #0a0f0d;
+  --text-2: #3d4742;
+  --text-3: #5d6b63;
+
+  --brand-green: #28844c; /* 4.67:1 on white — text-safe */
+  --brand-green-strong: #1e4d35; /* 9.69:1 — headings */
+  --brand-amber: #fbb03b; /* fills & glows only — 1.85:1 on white */
+  --amber-text-safe: #b4741f; /* 3.85:1 — use when amber text is required */
+
+  /* Functional states */
+  --state-charging: #fbb03b;
+  --state-complete: #28844c;
+
+  /* 3D environment */
+  --road-asphalt: #2e2a24;
+  --road-centerline: #fbb03b;
+  --lamp-glow: #ffefc7; /* warm ~2700–3000K, deliberately not a brand colour */
+
+  --shadow-card: 0 18px 40px -24px rgb(10 15 13 / 0.35);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--brand-green) 45%, transparent);
+
+  --dur-slow: 900ms;
+  --dur-mid: 420ms;
+  --dur-fast: 180ms;
+}
+
+/* ---- Night mode (values finalised in the brand file — do not alter) ---- */
+:root[data-mode='night'] {
+  --bg-top: #0a0f0d;
+  --bg-mid: #0c130f;
+  --bg-lower: #0f1a11;
+
+  --bg: #0a0f0d;
+  --surface: #0f1a11;
+  --border: #1a2e1f;
+
+  --text: #f0fdf4; /* 18.46:1 */
+  --text-2: #a7f3d0; /* 15.06:1 */
+  --text-3: #6ee7b7; /* 12.67:1 */
+
+  --brand-green: #3fae6a; /* 6.88:1 */
+  --brand-green-strong: #6ee7b7;
+  --brand-amber: #fbb03b; /* 10.46:1 — unchanged */
+  --amber-text-safe: #fbb03b; /* amber is text-safe on the dark ground */
+
+  --state-charging: #fbb03b;
+  --state-complete: #3fae6a;
+
+  --shadow-card: 0 18px 44px -22px rgb(0 0 0 / 0.75);
+}
+
+/* Users who ask for less motion get an instant mode switch, never a crossfade. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-slow: 1ms;
+    --dur-mid: 1ms;
+    --dur-fast: 1ms;
+  }
+}

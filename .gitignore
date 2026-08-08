@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.local
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env — never commit real credentials
+.env
+.env.*
+!.env.example
+
+# Temporary verification scripts
+.tmp-*
+
+# ---------------------------------------------------------------------------
+# Reference 3D models — deliberately excluded (55 MB combined).
+#
+# These are trademarked production vehicles (Tesla Model 3, BYD Dolphin) and
+# are NOT used by the site: the car in gowatt/src/three/Car.tsx is an original
+# generic crossover built in code. Committing them would put 55 MB of unused
+# binaries into git history permanently, where they cannot easily be removed.
+#
+# To include them anyway, delete the two lines below and commit. Consider
+# `git lfs track "*.glb"` first.
+# ---------------------------------------------------------------------------
+2021_byd_dolphin_ev.glb
+tesla_2018_model_3.glb

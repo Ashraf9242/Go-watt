@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-mode="day">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>الأسئلة الشائعة — Go Watt</title>
+    <meta
+      name="description"
+      content="أسئلة شائعة عن Go Watt: حالة التطبيق، المحطات، القوابس المدعومة، مشاركة الشاحن المنزلي، والخصوصية."
+    />
+    <link rel="canonical" href="https://gowatt.om/faq.html" />
+    <link rel="alternate" hreflang="ar" href="https://gowatt.om/faq.html" />
+    <link rel="alternate" hreflang="en" href="https://gowatt.om/en/" />
+    <link rel="icon" type="image/svg+xml" href="/brand/icon/gowatt-icon.svg" />
+    <link rel="preload" href="/fonts/plex-arabic-400.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <nav class="page-nav" aria-label="التنقل">
+      <div class="page-nav__inner">
+        <a href="/"><img data-logo src="/brand/logo/gowatt-logo.svg" alt="Go Watt" width="110" height="32" style="height: 1.9rem; width: auto" /></a>
+        <a href="/">الرحلة</a>
+        <a href="/about.html">من نحن</a>
+        <a href="/en/" hreflang="en" style="margin-inline-start: auto">English</a>
+        <button data-mode-toggle type="button" aria-label="تبديل الوضع النهاري/الليلي" aria-pressed="false">☾</button>
+      </div>
+    </nav>
+
+    <main class="page-wrap" id="main">
+      <h1>الأسئلة الشائعة</h1>
+      <p class="page-note">
+        كل الواجهات المعروضة في الصفحة الرئيسية (تسجيل الدخول، الحجز، الدفع، الخريطة) محاكاة
+        توضيحية لما سيقوم به التطبيق — وليست خدمة تعمل الآن.
+      </p>
+
+      <!-- Same accordion technique as the journey: grid-template-rows for the
+           height animation, aria-expanded kept in sync by src/pages.ts. -->
+      <ul style="list-style: none; padding: 0; margin-top: 1.5rem">
+        <li style="border-top: 1px solid var(--border)">
+          <h2 style="margin: 0">
+            <button data-acc-btn type="button" aria-expanded="true" aria-controls="p1"
+              style="width: 100%; text-align: start; padding: 1rem 0; font-weight: 700">
+              هل التطبيق متاح الآن؟
+            </button>
+          </h2>
+          <div id="p1" class="gw-acc__panel" data-open="true"><div>
+            <p>لا. التطبيق قيد التطوير، وهذا الموقع تعريفي لتسجيل الاهتمام قبل الإطلاق.</p>
+          </div></div>
+        </li>
+
+        <li style="border-top: 1px solid var(--border)">
+          <h2 style="margin: 0">
+            <button data-acc-btn type="button" aria-expanded="false" aria-controls="p2"
+              style="width: 100%; text-align: start; padding: 1rem 0; font-weight: 700">
+              هل يمكنني الحجز أو الدفع من الموقع؟
+            </button>
+          </h2>
+          <div id="p2" class="gw-acc__panel" data-open="false"><div>
+            <p>لا. الشيء الوحيد الذي يعمل فعلياً على الموقع هو نموذجا التسجيل: قائمة انتظار
+              التطبيق، وطلب مشاركة شاحن منزلي.</p>
+          </div></div>
+        </li>
+
+        <li style="border-top: 1px solid var(--border)">
+          <h2 style="margin: 0">
+            <button data-acc-btn type="button" aria-expanded="false" aria-controls="p3"
+              style="width: 100%; text-align: start; padding: 1rem 0; font-weight: 700">
+              ما القوابس والمحطات المدعومة؟
+            </button>
+          </h2>
+          <div id="p3" class="gw-acc__panel" data-open="false"><div>
+            <p>الخطة تشمل قوابس Type 2 و CCS. التفاصيل النهائية، ومواقع المحطات الفعلية،
+              ستُنشر عند إطلاق التطبيق.</p>
+          </div></div>
+        </li>
+
+        <li style="border-top: 1px solid var(--border)">
+          <h2 style="margin: 0">
+            <button data-acc-btn type="button" aria-expanded="false" aria-controls="p4"
+              style="width: 100%; text-align: start; padding: 1rem 0; font-weight: 700">
+              أملك شاحناً منزلياً — كيف أشارك؟
+            </button>
+          </h2>
+          <div id="p4" class="gw-acc__panel" data-open="false"><div>
+            <p>عبر نموذج «شاحن منزلي» في <a href="/">الصفحة الرئيسية</a>. سنتواصل معك عند
+              فتح البرنامج.</p>
+          </div></div>
+        </li>
+
+        <li style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border)">
+          <h2 style="margin: 0">
+            <button data-acc-btn type="button" aria-expanded="false" aria-controls="p5"
+              style="width: 100%; text-align: start; padding: 1rem 0; font-weight: 700">
+              الموقع ثقيل على جهازي — هل هناك بديل؟
+            </button>
+          </h2>
+          <div id="p5" class="gw-acc__panel" data-open="false"><div>
+            <p>نعم. الموقع يكتشف الشبكة البطيئة والأجهزة المحدودة وتفضيل «تقليل الحركة»
+              ويعرض نسخة كاملة بلا رسوم ثلاثية الأبعاد، ويمكن التبديل يدوياً من أسفل
+              الصفحة الرئيسية.</p>
+          </div></div>
+        </li>
+      </ul>
+
+      <p class="page-foot">
+        © 2026 Go Watt · <a href="/privacy.html">الخصوصية</a> · <a href="/terms.html">الشروط</a>
+      </p>
+    </main>
+
+    <script type="module" src="/src/pages.ts"></script>
+  </body>
+</html>

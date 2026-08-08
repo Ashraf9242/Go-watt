@@ -1,0 +1,99 @@
+/**
+ * Stylesheet for the canvas-free text pages (About, FAQ, Privacy, Terms).
+ * Same tokens and type as the journey, none of the 3D machinery — these pages
+ * ship no WebGL code at all.
+ */
+@import './index.css';
+
+.page-wrap {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 5.5rem 1.25rem 4rem;
+}
+
+.page-nav {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.page-nav__inner {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0.7rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.page-wrap h1 {
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.page-wrap h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 2.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.page-wrap h3 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.page-wrap p,
+.page-wrap li {
+  color: var(--text-2);
+}
+
+.page-wrap p {
+  margin-bottom: 0.9rem;
+}
+
+.page-wrap ul,
+.page-wrap ol {
+  margin: 0 0 1rem;
+  padding-inline-start: 1.35rem;
+}
+
+.page-wrap li {
+  margin-bottom: 0.4rem;
+}
+
+.page-wrap ul {
+  list-style: disc;
+}
+.page-wrap ol {
+  list-style: decimal;
+}
+
+.page-wrap a {
+  color: var(--brand-green);
+  text-decoration: underline;
+}
+
+.page-note {
+  border-inline-start: 3px solid var(--brand-amber);
+  padding: 0.6rem 0.9rem;
+  background: color-mix(in srgb, var(--brand-amber) 8%, transparent);
+  border-radius: 0 12px 12px 0;
+  font-size: 0.9rem;
+}
+
+.page-foot {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
