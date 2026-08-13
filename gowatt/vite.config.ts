@@ -4,6 +4,10 @@ import { resolve } from 'node:path'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: true,
+    allowedHosts: true,
+  },
   build: {
     // Multi-page build: the 3D journey (index) plus canvas-free text pages.
     rollupOptions: {
