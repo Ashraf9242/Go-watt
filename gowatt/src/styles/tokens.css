@@ -10,21 +10,21 @@
   --gw-green: #28844c;
   --gw-amber: #fbb03b;
 
-  /* ---- Day mode (default) ---- */
+  /* ---- Day mode (default): clean, bright, minimal ---- */
   --bg-top: #ffffff;
-  --bg-mid: #fff6ea;
-  --bg-lower: #f6dfb8;
+  --bg-mid: #fbfdfc;
+  --bg-lower: #eef4f1;
 
   --bg: var(--bg-top);
   --surface: #ffffff;
-  --border: #e7d7bd;
+  --border: #e6ece9; /* cool neutral hairline, not warm cream */
 
-  --text: #0a0f0d;
-  --text-2: #3d4742;
-  --text-3: #5d6b63;
+  --text: #0b1512; /* near-black — modern SaaS heading colour */
+  --text-2: #47554e;
+  --text-3: #7d8b83;
 
   --brand-green: #28844c; /* 4.67:1 on white — text-safe */
-  --brand-green-strong: #1e4d35; /* 9.69:1 — headings */
+  --brand-green-strong: #1e4d35; /* 9.69:1 — strong accents */
   --brand-amber: #fbb03b; /* fills & glows only — 1.85:1 on white */
   --amber-text-safe: #b4741f; /* 3.85:1 — use when amber text is required */
 
@@ -37,7 +37,7 @@
   --road-centerline: #fbb03b;
   --lamp-glow: #ffefc7; /* warm ~2700–3000K, deliberately not a brand colour */
 
-  --shadow-card: 0 18px 40px -24px rgb(10 15 13 / 0.35);
+  --shadow-card: 0 1px 2px rgb(11 21 18 / 0.04), 0 16px 40px -24px rgb(11 21 18 / 0.22);
   --ring: 0 0 0 3px color-mix(in srgb, var(--brand-green) 45%, transparent);
 
   --dur-slow: 900ms;
