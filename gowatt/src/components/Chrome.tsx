@@ -219,7 +219,7 @@ export function Header() {
           ? 'color-mix(in srgb, var(--bg) 88%, transparent)'
           : 'color-mix(in srgb, var(--bg) 55%, transparent)',
         backdropFilter: scrolled ? 'blur(14px)' : 'blur(6px)',
-        boxShadow: scrolled ? '0 1px 0 var(--border), 0 12px 24px -18px rgb(0 0 0 / 0.35)' : 'none',
+        boxShadow: scrolled ? '0 1px 0 var(--border), 0 10px 30px -22px rgb(11 21 18 / 0.22)' : 'none',
       }}
     >
       <div className="max-w-6xl mx-auto flex items-center gap-3 px-4 sm:px-6 h-14">
