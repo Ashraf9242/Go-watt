@@ -84,7 +84,7 @@ export function CameraRig() {
 
   // RTL puts the cards on the right, so the car belongs on the left, and the
   // whole composition mirrors when the visitor switches to English.
-  const shift = lang === 'ar' ? FRAME_SHIFT : -FRAME_SHIFT
+  const dir = lang === 'ar' ? 1 : -1
 
   const target = useMemo(() => new THREE.Vector3(), [])
   const desired = useMemo(() => new THREE.Vector3(), [])
